@@ -35,7 +35,7 @@ def load_data(currentNodeNumber, numberOfNodes):
                 astrometric_chi2_al, \
                 astrometric_n_good_obs_al, \
                 azero_gspphot, \
-                phot_g_mean_mag+5*log10(parallax)-10 AS mg, \
+                phot_g_mean_mag+5*log10(parallax / 1000)+5 AS mg, \
                 1000.0/parallax AS dist \
             FROM gaiadr3.gaia_source \
             WHERE ra IS NOT NULL \
