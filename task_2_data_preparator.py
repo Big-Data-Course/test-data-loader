@@ -4,10 +4,10 @@ import os
 
 data_dir = "loaded_data"
 
-def prepare_data(dir, indFrom, indTo):
+def prepare_data(dir, indFrom = -1, indTo = -1):
     for filename in os.listdir(data_dir):
         ind = int(filename.split("_")[-1])
-        if ind < indFrom or ind >= indTo:
+        if indFrom != indTo and (ind < indFrom or ind >= indTo):
             continue
         print(filename)
         fin = os.path.join(data_dir, filename)
