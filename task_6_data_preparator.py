@@ -1,4 +1,4 @@
-from astropy.io import ascii
+import pandas as pd
 from sys import argv
 import os
 
@@ -12,13 +12,8 @@ def prepare_data(dir, indFrom = -1, indTo = -1):
         print(filename)
         fin = os.path.join(data_dir, filename)
         fout = os.path.join(dir, filename)
-        print(fin)
-        print(fout)
-        print("read start")
-        data = ascii.read(fin)
-        print("read finish")
-        ascii.write(data["random_index", "mg", "bp_rp", "azero_gspphot", "dist"], fout, overwrite=True)
-        print(filename)
+        data = pd.read_csv(fin, sep=" ")
+        data[["random_index", "mg", "bp_rp", "azero_gspphot", "dist"]].to_csv(fout, sep=" ", index=False)
 
 if __name__ == "__main__":
     if not os.path.exists("task_6_data"):
