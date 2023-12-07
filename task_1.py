@@ -24,61 +24,9 @@ def task_load_data(dir, indFrom = -1, indTo = -1):
     frame = pd.concat(li, axis = 0, ignore_index=True)
     return frame
 
-def coordinates_aitoff_plot(coords):
-    white_viridis = LinearSegmentedColormap.from_list('white_viridis', [
-        (0, '#ffffff'),
-        (1e-20, '#440053'),
-        (0.05, '#404388'),
-        (0.2, '#2a788e'),
-        (0.4, '#21a784'),
-        (0.6, '#78d151'),
-        (1, '#fde624'),
-    ], N=256)
-
-    fig, ax = plt.subplots(figsize=(10, 4), 
-                           subplot_kw=dict(projection="aitoff"))
-    
-    sph = coords.spherical
-    a = ScatterDensityArtist(ax,
-                             -sph.lon.wrap_at(180*u.deg).radian,
-                             sph.lat.radian,
-                             cmap=white_viridis)
-    ax.add_artist(a)
-
-    def fmt_func(x, pos):
-        val = coord.Angle(-x*u.radian).wrap_at(360*u.deg).degree
-        return f'${val:.0f}' + r'^{\circ}$'
-
-    ticker = mpl.ticker.FuncFormatter(fmt_func)
-    ax.xaxis.set_major_formatter(ticker)
-
-    ax.grid()
-    
-    #cb = fig.colorbar(cs)
-    #cb.set_label('distance [pc]')
-    
-    return fig, ax
-
 def task_6(results):
     norm = ImageNormalize(vmin=1e-10, stretch=PowerStretch(0.5))
 
-    '''print("Create cluster")
-
-    open_cluster_c = SkyCoord(
-        ra=results['ra'],
-        dec=results['dec'],
-        unit='deg')
-    
-    print("Cluser is ready")
-
-    open_cluster_gal = open_cluster_c.transform_to(Galactic())
-
-    print("Projection is ready")
-
-    fig, ax = coordinates_aitoff_plot(open_cluster_gal)
-    ax.set_xlabel('Galactic longitude, $l$ [deg]')
-    ax.set_ylabel('Galactic latitude, $b$ [deg]')'''
-
     white_viridis = LinearSegmentedColormap.from_list('white_viridis', [
         (0, '#ffffff'),
         (1e-20, '#440053'),
@@ -89,16 +37,29 @@ def task_6(results):
         (1, '#fde624'),
     ], N=256)
 
-    fig, ax = plt.subplots(figsize=(10, 4), 
+    fig, ax = plt.subplots(figsize=(15, 8),
                            subplot_kw=dict(projection="aitoff"))
+    
+
+    print('Lon apply...')
+    results['ra'] = results['ra'].apply(lambda x: -(x if x <= 180 else x - 360) * 0.0175)
+    print('Lat apply...')
+    results['dec'] = results['dec'].apply(lambda x: x * 0.0175)
+
+    def to_galactic(row):
+        lon = row['ra']
+        lat = row['dec']
+        row['ra'] = np.arcsin(np.sin(lon) * np.sin(27.12825 * 0.0175) + np.cos(lon) * np.cos(27.12825 * 0.0175) * np.cos(lat - 192.85948 * 0.0175))
+        row['dec'] = -np.arcsin((np.cos(lon) * np.sin(lat - 192.85948 * 0.0175)) / np.cos(row['ra'])) + 122.93192 * 0.0175
+        return row
+
+    print('To galactic...')
+    results = results.apply(to_galactic, axis=1)
     
     lon = results['ra']
     lat = results['dec']
-    print('Lon apply...')
-    lon = lon.apply(lambda x: -(x if x <= 180 else x - 360) * 0.0175)
-    print('Lat apply...')
-    lat = lat.apply(lambda x: x * 0.0175)
-    #sph = coords.spherical
+    
+
     a = ScatterDensityArtist(ax,
                              lon,
                              lat,
