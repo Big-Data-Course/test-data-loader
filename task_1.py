@@ -13,6 +13,7 @@ from astropy import units as u
 from astropy.coordinates import (SkyCoord, Distance, Galactic, 
                                  EarthLocation, AltAz)
 import astropy.coordinates as coord
+import math
 
 def task_load_data(dir, indFrom = -1, indTo = -1):
     li = []
@@ -40,30 +41,43 @@ def task_6(results):
     fig, ax = plt.subplots(figsize=(15, 8),
                            subplot_kw=dict(projection="aitoff"))
     
-
+    radian = np.pi / 180
     print('Lon apply...')
-    results['ra'] = results['ra'].apply(lambda x: -(x if x <= 180 else x - 360) * 0.0175)
+    results['ra'] = results['ra'].apply(lambda x: (x if x <= 180 else x - 360) * radian)
     print('Lat apply...')
-    results['dec'] = results['dec'].apply(lambda x: x * 0.0175)
+    results['dec'] = results['dec'].apply(lambda x: x * radian)
 
-    def to_galactic(row):
+    '''def to_galactic(row):
         lon = row['ra']
         lat = row['dec']
-        row['ra'] = np.arcsin(np.sin(lon) * np.sin(27.12825 * 0.0175) + np.cos(lon) * np.cos(27.12825 * 0.0175) * np.cos(lat - 192.85948 * 0.0175))
-        row['dec'] = -np.arcsin((np.cos(lon) * np.sin(lat - 192.85948 * 0.0175)) / np.cos(row['ra'])) + 122.93192 * 0.0175
+        row['ra'] = math.asin(math.sin(lon) * math.sin(27.12825 * radian) + math.cos(lon) * math.cos(27.12825 * radian) * math.cos(lat - 192.85948 * radian))
+        row['dec'] = -math.asin((math.cos(lon) * math.sin(lat - 192.85948 * radian)) / math.cos(row['ra'])) + 122.93192 * radian
         return row
 
     print('To galactic...')
-    results = results.apply(to_galactic, axis=1)
-    
-    lon = results['ra']
-    lat = results['dec']
-    
+    results = results.apply(to_galactic, axis=1)'''
+
+    print('To numpy...')
+    alpha = results['ra'].to_numpy()
+    print('lot ready')
+    delta = results['dec'].to_numpy()
+    print('lat ready')
+
+    b = np.arcsin(np.sin(delta) * np.sin(27.12825 * radian) + np.cos(delta) * np.cos(27.12825 * radian) * np.cos(alpha - 192.85948 * radian))
+    cosll = (np.sin(delta) * np.cos(27.12825 * radian) - np.cos(delta) * np.sin(27.12825 * radian) * np.cos(alpha - 192.85948 * radian)) / np.cos(b)
+    sinll = (np.cos(delta) * np.sin(alpha - 192.85948 * radian)) / np.cos(b)
+    def lformula (cosll, sinll):
+        return (np.arcsin(sinll) if cosll > 0 else np.pi - np.arcsin(sinll)) * -1 + 122.93192 * radian
+    lvectorizer = np.vectorize(lformula)
+    l = lvectorizer(cosll, sinll)
+    normilize = np.vectorize(lambda x: -x if x <= np.pi else -x + np.pi * 2)
+    l = normilize(l)
 
     a = ScatterDensityArtist(ax,
-                             lon,
-                             lat,
-                             cmap=white_viridis)
+                             l,
+                             b,
+                             cmap=white_viridis
+                             )
     ax.add_artist(a)
 
     def fmt_func(x, pos):
@@ -72,8 +86,8 @@ def task_6(results):
 
     ticker = mpl.ticker.FuncFormatter(fmt_func)
     ax.xaxis.set_major_formatter(ticker)
-    ax.set_xlabel('RA')
-    ax.set_ylabel('DEG')
+    ax.set_xlabel('Galactic longitude, $l$ [deg]')
+    ax.set_ylabel('Galactic latitude, $b$ [deg]')
     ax.grid()
         
     #density = ax.scatter_density(x, y, cmap=white_viridis, norm=norm)
