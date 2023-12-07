@@ -62,22 +62,63 @@ def coordinates_aitoff_plot(coords):
 def task_6(results):
     norm = ImageNormalize(vmin=1e-10, stretch=PowerStretch(0.5))
 
+    '''print("Create cluster")
+
     open_cluster_c = SkyCoord(
         ra=results['ra'],
         dec=results['dec'],
         unit='deg')
+    
+    print("Cluser is ready")
 
     open_cluster_gal = open_cluster_c.transform_to(Galactic())
 
+    print("Projection is ready")
+
     fig, ax = coordinates_aitoff_plot(open_cluster_gal)
     ax.set_xlabel('Galactic longitude, $l$ [deg]')
-    ax.set_ylabel('Galactic latitude, $b$ [deg]')
-    ax.set_xlabel(r'RA')
-    ax.set_ylabel(r'DEC')
+    ax.set_ylabel('Galactic latitude, $b$ [deg]')'''
+
+    white_viridis = LinearSegmentedColormap.from_list('white_viridis', [
+        (0, '#ffffff'),
+        (1e-20, '#440053'),
+        (0.05, '#404388'),
+        (0.2, '#2a788e'),
+        (0.4, '#21a784'),
+        (0.6, '#78d151'),
+        (1, '#fde624'),
+    ], N=256)
+
+    fig, ax = plt.subplots(figsize=(10, 4), 
+                           subplot_kw=dict(projection="aitoff"))
     
+    lon = results['ra']
+    lat = results['dec']
+    print('Lon apply...')
+    lon = lon.apply(lambda x: -(x if x <= 180 else x - 360) * 0.0175)
+    print('Lat apply...')
+    lat = lat.apply(lambda x: x * 0.0175)
+    #sph = coords.spherical
+    a = ScatterDensityArtist(ax,
+                             lon,
+                             lat,
+                             cmap=white_viridis)
+    ax.add_artist(a)
+
+    def fmt_func(x, pos):
+        val = coord.Angle(-x*u.radian).wrap_at(360*u.deg).degree
+        return f'${val:.0f}' + r'^{\circ}$'
+
+    ticker = mpl.ticker.FuncFormatter(fmt_func)
+    ax.xaxis.set_major_formatter(ticker)
+    ax.set_xlabel('RA')
+    ax.set_ylabel('DEG')
+    ax.grid()
+        
     #density = ax.scatter_density(x, y, cmap=white_viridis, norm=norm)
     #ax.invert_yaxis()
     #fig.colorbar(density, label='')
+    plt.savefig("Figure_2_full_projection.png", dpi=500)
     plt.show()
 
 if __name__ == "__main__":
